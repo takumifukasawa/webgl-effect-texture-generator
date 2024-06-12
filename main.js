@@ -150,14 +150,14 @@ const main = async () => {
 
     const positionVBO = createVBO(gl, positions);
     gl.bindBuffer(gl.ARRAY_BUFFER, positionVBO);
-    gl.enableVertexAttribArray(0);
     const positionLocation = gl.getAttribLocation(program, "position");
+    gl.enableVertexAttribArray(positionLocation);
     gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
     const uvVBO = createVBO(gl, uvs);
     gl.bindBuffer(gl.ARRAY_BUFFER, uvVBO);
-    gl.enableVertexAttribArray(1);
     const uvLocation = gl.getAttribLocation(program, "uv");
+    gl.enableVertexAttribArray(uvLocation);
     gl.vertexAttribPointer(uvLocation, 2, gl.FLOAT, false, 0, 0);
 
     materialPrograms.set("random-noise", program);
