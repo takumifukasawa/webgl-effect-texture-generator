@@ -142,7 +142,7 @@ const tick = (time) => {
 }
 
 const main = async () => {
-    const randomNoiseFragmentShaderPath = "./shaders/random-noise.frag";
+    const randomNoiseFragmentShaderPath = "./shaders/random-noise.glsl";
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSrc);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, await fetchShaderSrc(randomNoiseFragmentShaderPath));
