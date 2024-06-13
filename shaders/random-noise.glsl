@@ -6,6 +6,8 @@ in vec2 vUv;
 
 out vec4 outColor;
 
+uniform float uTime;
+
 // ref: https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
 float rand(vec2 co) {
     return mod(
@@ -28,8 +30,7 @@ void main() {
     vec2 gridIndices = floor(vUv * resolution) / resolution;
     vec2 gridFracts = mod(vUv * resolution, 1.);
 
-    float r = rand(uv);
-    outColor = vec4(vec3(r), 1.);
+    float r = rand(gridIndices + uTime);
     
-    outColor = vec4(gridFracts, 0., 1.);
+    outColor = vec4(vec3(r), 1.);
 }

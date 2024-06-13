@@ -135,6 +135,8 @@ const tick = (time) => {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     if (currentTargetMaterialProgram != null) {
         gl.useProgram(currentTargetMaterialProgram);
+        const uniformLocationTime = gl.getUniformLocation(currentTargetMaterialProgram, "uTime");
+        gl.uniform1f(uniformLocationTime, time / 1000);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.flush();
     }
@@ -161,7 +163,7 @@ const main = async () => {
     gl.vertexAttribPointer(uvLocation, 2, gl.FLOAT, false, 0, 0);
 
     materialPrograms.set("random-noise", program);
-    currentTargetMaterialProgram = createProgram(gl, vertexShader, fragmentShader);
+    currentTargetMaterialProgram = program;
 
     window.requestAnimationFrame(tick);
 }
