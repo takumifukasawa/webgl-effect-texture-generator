@@ -12,6 +12,12 @@ uniform vec2 uResolution;
 uniform vec2 uGridSize;
 uniform float uTime;
 
+float smooth5(float t) {
+    float t3 = t * t * t;
+    float t4 = t * t * t * t;
+    float t5 = t * t * t * t * t;
+    return 6. * t5 - 15. * t4 + 10. * t3;
+}
 
 // ref: https://stackoverflow.com/questions/12964279/whats-the-origin-of-this-glsl-rand-one-liner
 float rand(vec2 co) {
@@ -61,7 +67,7 @@ float calcValueNoise(vec2 p) {
     return vn;
 }
 
-float calcPerlinNoise(vec2 p) {
+float calcPerlinNoise(vec2 p, float isImproved) {
     vec2 i = floor(p);
     vec2 f = fract(p);
 
@@ -92,8 +98,9 @@ float calcPerlinNoise(vec2 p) {
     float n11 = dot(g11, p11);
    
     // 補間 
-    float sx = smooth(f.x);
-    float sy = smooth(f.y);
+    isImproved = step(.5, isImproved);
+    float sx = mix(smooth(f.x), smooth5(f.x), isImproved);
+    float sy = mix(smooth(f.y), smooth5(f.y), isImproved);
    
     // y=0でx間の補間 
     float mx0 = mix(n00, n10, sx);
@@ -117,7 +124,11 @@ void main() {
     
     // result = calcRandomNoise(newUv);
     // result = calcValueNoise(newUv);
-    result = calcPerlinNoise(newUv);
-   
+    
+    // normal perlin
+    // result = calcPerlinNoise(newUv, 0.);
+    // improved perlin
+    result = calcPerlinNoise(newUv, 1.);
+    
     outColor = vec4(vec3(result), 1.);
 }
