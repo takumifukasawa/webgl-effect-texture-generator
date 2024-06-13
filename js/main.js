@@ -1,3 +1,10 @@
+// ---------------------------------------------------------------
+// constants
+// ---------------------------------------------------------------
+
+const RESOLUTION = 512;
+const GRID_SIZE = 6;
+
 /**
  *
  * @param path
@@ -8,6 +15,12 @@ const fetchShaderSrc = async (path) => {
     return response.text();
 }
 
+/**
+ * 
+ * @param gl
+ * @param data
+ * @returns {WebGLBuffer | AudioBuffer}
+ */
 const createVBO = (gl, data) => {
     const buffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
@@ -135,6 +148,10 @@ const tick = (time) => {
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
     if (currentTargetMaterialProgram != null) {
         gl.useProgram(currentTargetMaterialProgram);
+        const uniformLocationResolution = gl.getUniformLocation(currentTargetMaterialProgram, "uResolution");
+        gl.uniform2fv(uniformLocationResolution, new Float32Array([RESOLUTION, RESOLUTION]));
+        const uniformLocationGridSize = gl.getUniformLocation(currentTargetMaterialProgram, "uGridSize");
+        gl.uniform2fv(uniformLocationGridSize, new Float32Array([GRID_SIZE, GRID_SIZE]));
         const uniformLocationTime = gl.getUniformLocation(currentTargetMaterialProgram, "uTime");
         gl.uniform1f(uniformLocationTime, time / 1000);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -144,7 +161,8 @@ const tick = (time) => {
 }
 
 const main = async () => {
-    const randomNoiseFragmentShaderPath = "./shaders/random-noise.glsl";
+    const shadersPath = "/shaders";
+    const randomNoiseFragmentShaderPath = `${shadersPath}/random-noise.glsl`;
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, vertexShaderSrc);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, await fetchShaderSrc(randomNoiseFragmentShaderPath));
