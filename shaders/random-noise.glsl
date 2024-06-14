@@ -2,6 +2,8 @@
 
 precision highp float;
 
+#define saturate(x) clamp(x, 0., 1.)
+
 #define smooth(x) smoothstep(0., 1., x)
 
 in vec2 vUv;
@@ -210,13 +212,19 @@ void main() {
     // result = valueNoise(newUv);
     
     // normal perlin
-    // result = perlinNoise(newUv, 0.);
+    result = perlinNoise(newUv, 0.);
     
     // improved perlin
-    // result = perlinNoise(newUv, 1.);
+    result = perlinNoise(newUv, 1.);
    
     // simplex noise
     result = snoise(newUv);
     
+    // result += snoise(newUv);
+    
     outColor = vec4(vec3(result), 1.);
+  
+    // for debug
+    // float r = saturate(1. - length(uv - vec2(.5)));
+    // outColor = vec4(vec3(pow(r, 8.)), 1.);
 }

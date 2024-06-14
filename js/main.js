@@ -5,6 +5,9 @@
 const RESOLUTION = 512;
 const GRID_SIZE = 8;
 
+const SCROLL_SPEED = 60;
+// const SCROLL_SPEED = 0;
+
 const fullQuadVertexShaderSrc = `#version 300 es
 
 precision highp float;
@@ -23,15 +26,74 @@ const postprocessFragmentShaderSrc = `#version 300 es
 
 precision highp float;
 
-uniform sampler2D uTexture;
+uniform sampler2D uSrcTexture;
 
 in vec2 vUv;
 
 out vec4 outColor;
 
+const float EPS = .00001;
+
+mat2 rot2(float rad) {
+    return mat2(cos(rad), -sin(rad), sin(rad), cos(rad));
+}
+
+float circularMask(in vec2 uv) {
+    vec2 p = uv - vec2(0.5);
+    return max((.5 - length(p)) / .5, .01);
+}
+
+float edgeMask(in vec2 uv, float band, float rate) {
+    vec2 p = abs(rot2(3.14 / 4.) * (uv - vec2(0.5)) * 1.414);
+    float e = 1. - (.5 - max(p.x, p.y)) / .5;
+    float s = smoothstep(1. - band, 1., e) * (1. - smoothstep(1., 1. + band, e));
+    s *= rate;
+    return s;
+}
+
 void main() {
-    vec4 textureColor = texture(uTexture, vUv);
-    outColor = textureColor;
+vec2 uv = vUv;
+    vec4 textureColor = texture(uSrcTexture, vUv);
+  
+    vec2 leftTopOffset = vec2(.5, -.5);
+    vec2 rightTopOffset = vec2(-.5, -.5);
+    vec2 leftBottomOffset = vec2(.5, .5);
+    vec2 rightBottomOffset = vec2(-.5, .5);
+
+    float centerMask = circularMask(uv);
+    float leftTopMask = circularMask(uv + leftTopOffset);
+    float rightTopMask = circularMask(uv + rightTopOffset);
+    float leftBottomMask = circularMask(uv + leftBottomOffset);
+    float rightBottomMask = circularMask(uv + rightBottomOffset);
+    
+    float accMask = centerMask + leftTopMask + rightTopMask + leftBottomMask + rightBottomMask;
+   
+    vec3 centerColor = texture(uSrcTexture, uv).xyz;
+    vec3 leftTopColor = texture(uSrcTexture, uv + leftTopOffset).xyz;
+    vec3 rightTopColor = texture(uSrcTexture, uv + rightTopOffset).xyz;
+    vec3 leftBottomColor = texture(uSrcTexture, uv + leftBottomOffset).xyz;
+    vec3 rightBottomColor = texture(uSrcTexture, uv + rightBottomOffset).xyz;
+   
+    centerColor *= centerMask; 
+    leftTopColor *= leftTopMask;
+    rightTopColor *= rightTopMask;
+    leftBottomColor *= leftBottomMask;
+    rightBottomColor *= rightBottomMask;
+    
+    vec3 edgeColor = texture(uSrcTexture, uv + vec2(.5)).xyz;
+    edgeColor *= edgeMask(uv, .1, .1);
+    
+    vec3 accColor = 
+        centerColor
+        + leftTopColor
+        + rightTopColor
+        + leftBottomColor
+        + rightBottomColor
+        + edgeColor;
+    
+    // for debug
+    outColor = vec4(accColor, 1.);
+    // outColor = vec4(vec3(edgeMask(uv)), 1.);
 }
 `;
 
@@ -111,8 +173,10 @@ const createTexture = (gl, width, height) => {
 
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    // gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
 
     gl.texImage2D(
         gl.TEXTURE_2D,
@@ -139,9 +203,11 @@ const createTexture = (gl, width, height) => {
 //     console.log(textarea.value);
 // });
 
-const canvas = document.getElementById("js-canvas");
-const gl = canvas.getContext("webgl2");
+const renderCanvas = document.getElementById("js-render-canvas");
+const gl = renderCanvas.getContext("webgl2");
 
+const previewCanvas = document.getElementById("js-preview-canvas");
+const previewCtx = previewCanvas.getContext("2d");
 
 const materialPrograms = new Map();
 
@@ -216,11 +282,16 @@ const createFullQuadGeometry = (program) => {
 const setSize = () => {
 };
 
+let prevTime = 0;
+
 /**
  * 
  * @param time
  */
 const tick = (time) => {
+    const currentTime = time / 1000;
+    const deltaTime = currentTime - prevTime;
+    
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -232,7 +303,7 @@ const tick = (time) => {
         const uniformLocationGridSize = gl.getUniformLocation(currentTargetMaterialProgram, "uGridSize");
         gl.uniform2fv(uniformLocationGridSize, new Float32Array([GRID_SIZE, GRID_SIZE]));
         const uniformLocationTime = gl.getUniformLocation(currentTargetMaterialProgram, "uTime");
-        gl.uniform1f(uniformLocationTime, time / 1000);
+        gl.uniform1f(uniformLocationTime, currentTime);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
@@ -241,11 +312,22 @@ const tick = (time) => {
     let activeTextureIndex = 0;
     gl.activeTexture(gl.TEXTURE0 + activeTextureIndex);
     gl.bindTexture(gl.TEXTURE_2D, offScreenTexture);
-    const uniformLocationTexture = gl.getUniformLocation(postProcessProgram, "uTexture");
+    const uniformLocationTexture = gl.getUniformLocation(postProcessProgram, "uSrcTexture");
     gl.uniform1i(uniformLocationTexture, activeTextureIndex);
     activeTextureIndex++;
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
+
+    previewCtx.clearRect(0, 0, RESOLUTION, RESOLUTION);
+    const offsetX = SCROLL_SPEED * deltaTime;
+    const offsetY = SCROLL_SPEED * deltaTime;
+    previewCtx.translate(offsetX, offsetY);
+    const pattern = previewCtx.createPattern(renderCanvas, "repeat");
+    previewCtx.rect(-offsetX, -offsetY, RESOLUTION, RESOLUTION);
+    previewCtx.fillStyle = pattern;
+    previewCtx.fill();
+
+    prevTime = currentTime;
     
     window.requestAnimationFrame(tick);
 }
