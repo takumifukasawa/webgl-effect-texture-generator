@@ -3,99 +3,30 @@
 // ---------------------------------------------------------------
 
 const RESOLUTION = 512;
-const GRID_SIZE = 8;
+const GRID_SIZE = 512;
 
 const SCROLL_SPEED = 60;
 // const SCROLL_SPEED = 0;
 
-const fullQuadVertexShaderSrc = `#version 300 es
+const SHADERS_PATH = "/shaders";
+let commonHeaderShaderContent = null;
+let fullQuadVertexShaderContent = null;
+let postprocessFragmentShaderContent = null;
+let canvasPattern = null;
+let needsUpdateCanvasPattern = false;
 
-precision highp float;
+// ---------------------------------------------------------------
 
-layout (location = 0) in vec2 position;
-layout (location = 1) in vec2 uv;
-
-out vec2 vUv;
-
-void main() {
-  vUv = uv;
-  gl_Position = vec4(position.xy, 0.0, 1.0);
-}`;
-
-const postprocessFragmentShaderSrc = `#version 300 es
-
-precision highp float;
-
-uniform sampler2D uSrcTexture;
-
-in vec2 vUv;
-
-out vec4 outColor;
-
-const float EPS = .00001;
-
-mat2 rot2(float rad) {
-    return mat2(cos(rad), -sin(rad), sin(rad), cos(rad));
+/**
+ *
+ * @param path
+ * @param removeCache
+ * @returns {Promise<string>}
+ */
+const fetchWrapper = async (path, removeCache = false) => {
+    const response = await fetch(path + (removeCache ? `?t=${Date.now()}` : ""));
+    return response;
 }
-
-float circularMask(in vec2 uv) {
-    vec2 p = uv - vec2(0.5);
-    return max((.5 - length(p)) / .5, .01);
-}
-
-float edgeMask(in vec2 uv, float band, float rate) {
-    vec2 p = abs(rot2(3.14 / 4.) * (uv - vec2(0.5)) * 1.414);
-    float e = 1. - (.5 - max(p.x, p.y)) / .5;
-    float s = smoothstep(1. - band, 1., e) * (1. - smoothstep(1., 1. + band, e));
-    s *= rate;
-    return s;
-}
-
-void main() {
-vec2 uv = vUv;
-    vec4 textureColor = texture(uSrcTexture, vUv);
-  
-    vec2 leftTopOffset = vec2(.5, -.5);
-    vec2 rightTopOffset = vec2(-.5, -.5);
-    vec2 leftBottomOffset = vec2(.5, .5);
-    vec2 rightBottomOffset = vec2(-.5, .5);
-
-    float centerMask = circularMask(uv);
-    float leftTopMask = circularMask(uv + leftTopOffset);
-    float rightTopMask = circularMask(uv + rightTopOffset);
-    float leftBottomMask = circularMask(uv + leftBottomOffset);
-    float rightBottomMask = circularMask(uv + rightBottomOffset);
-    
-    float accMask = centerMask + leftTopMask + rightTopMask + leftBottomMask + rightBottomMask;
-   
-    vec3 centerColor = texture(uSrcTexture, uv).xyz;
-    vec3 leftTopColor = texture(uSrcTexture, uv + leftTopOffset).xyz;
-    vec3 rightTopColor = texture(uSrcTexture, uv + rightTopOffset).xyz;
-    vec3 leftBottomColor = texture(uSrcTexture, uv + leftBottomOffset).xyz;
-    vec3 rightBottomColor = texture(uSrcTexture, uv + rightBottomOffset).xyz;
-   
-    centerColor *= centerMask; 
-    leftTopColor *= leftTopMask;
-    rightTopColor *= rightTopMask;
-    leftBottomColor *= leftBottomMask;
-    rightBottomColor *= rightBottomMask;
-    
-    vec3 edgeColor = texture(uSrcTexture, uv + vec2(.5)).xyz;
-    edgeColor *= edgeMask(uv, .1, .1);
-    
-    vec3 accColor = 
-        centerColor
-        + leftTopColor
-        + rightTopColor
-        + leftBottomColor
-        + rightBottomColor
-        + edgeColor;
-    
-    // for debug
-    outColor = vec4(accColor, 1.);
-    // outColor = vec4(vec3(edgeMask(uv)), 1.);
-}
-`;
 
 /**
  *
@@ -103,12 +34,12 @@ vec2 uv = vUv;
  * @returns {Promise<string>}
  */
 const fetchShaderSrc = async (path) => {
-    const response = await fetch(path);
+    const response = await fetchWrapper(path, true);
     return response.text();
 }
 
 /**
- * 
+ *
  * @param gl
  * @param data
  * @returns {WebGLBuffer | AudioBuffer}
@@ -189,7 +120,7 @@ const createTexture = (gl, width, height) => {
         gl.UNSIGNED_BYTE,
         null
     );
-    
+
     gl.bindTexture(gl.TEXTURE_2D, null);
     return texture;
 }
@@ -218,7 +149,7 @@ const offScreenTexture = createTexture(gl, RESOLUTION, RESOLUTION);
 const framebuffer = createFramebuffer(gl, offScreenTexture);
 
 /**
- * 
+ *
  * @param program
  */
 const createFullQuadGeometry = (program) => {
@@ -285,13 +216,13 @@ const setSize = () => {
 let prevTime = 0;
 
 /**
- * 
+ *
  * @param time
  */
 const tick = (time) => {
     const currentTime = time / 1000;
     const deltaTime = currentTime - prevTime;
-    
+
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -318,34 +249,63 @@ const tick = (time) => {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
 
-    previewCtx.clearRect(0, 0, RESOLUTION, RESOLUTION);
-    const offsetX = SCROLL_SPEED * deltaTime;
-    const offsetY = SCROLL_SPEED * deltaTime;
-    previewCtx.translate(offsetX, offsetY);
-    const pattern = previewCtx.createPattern(renderCanvas, "repeat");
-    previewCtx.rect(-offsetX, -offsetY, RESOLUTION, RESOLUTION);
-    previewCtx.fillStyle = pattern;
-    previewCtx.fill();
+    if (needsUpdateCanvasPattern) {
+        needsUpdateCanvasPattern = false;
+        canvasPattern = previewCtx.createPattern(renderCanvas, "repeat");
+    }
+
+    if (canvasPattern) {
+        previewCtx.clearRect(0, 0, RESOLUTION, RESOLUTION);
+        const offsetX = SCROLL_SPEED * deltaTime;
+        const offsetY = SCROLL_SPEED * deltaTime;
+        previewCtx.translate(offsetX, offsetY);
+        previewCtx.rect(-offsetX, -offsetY, RESOLUTION, RESOLUTION);
+        previewCtx.fillStyle = canvasPattern;
+        previewCtx.fill();
+    }
 
     prevTime = currentTime;
-    
+
     window.requestAnimationFrame(tick);
 }
 
+
 /**
- * 
+ *
+ * @param content
+ * @returns {*}
+ */
+const buildShaderContent = (content) => {
+    const str = content.replaceAll("#include <common_header>", commonHeaderShaderContent);
+    return str;
+};
+
+/**
+ *
+ * @returns {Promise<void>}
+ */
+const prepare = async () => {
+    commonHeaderShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/common-header.glsl`);
+    fullQuadVertexShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/full-quad-vertex.glsl`);
+    postprocessFragmentShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/postprocess-fragment.glsl`);
+}
+
+/**
+ *
  * @returns {Promise<void>}
  */
 const main = async () => {
-    const shadersPath = "/shaders";
-    const randomNoiseFragmentShaderPath = `${shadersPath}/random-noise.glsl`;
+    await prepare();
 
-    const vertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderSrc);
-    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, await fetchShaderSrc(randomNoiseFragmentShaderPath));
+    let shaderContent = await fetchShaderSrc(`${SHADERS_PATH}/random-noise.glsl`);
+    shaderContent = buildShaderContent(shaderContent);
+
+    const vertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderContent);
+    const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, shaderContent);
     const program = createProgram(gl, vertexShader, fragmentShader);
 
-    const postProcessVertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderSrc);
-    const postProcessFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, postprocessFragmentShaderSrc);
+    const postProcessVertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderContent);
+    const postProcessFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, postprocessFragmentShaderContent);
     postProcessProgram = createProgram(gl, postProcessVertexShader, postProcessFragmentShader);
 
     createFullQuadGeometry(program);
@@ -353,6 +313,8 @@ const main = async () => {
 
     materialPrograms.set("random-noise", program);
     currentTargetMaterialProgram = program;
+
+    needsUpdateCanvasPattern = true;
 
     window.requestAnimationFrame(tick);
 }
