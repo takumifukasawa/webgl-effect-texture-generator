@@ -15,18 +15,22 @@ let postprocessFragmentShaderContent = null;
 let canvasPattern = null;
 let needsUpdateCanvasPattern = false;
 
-const materialInfos = new Map();
+const effectInfos = new Map();
 
-materialInfos.set(
-    "random-noise",
+const EFFECT_TYPE = {
+    RANDOM_NOISE: "random-noise",
+};
+
+effectInfos.set(
+    EFFECT_TYPE.RANDOM_NOISE,
     {
-        fileName: "random-noise.glsl",
+        fileName: `${EFFECT_TYPE.RANDOM_NOISE}.glsl`,
     }
 );
-materialInfos.get("random-noise").program = null;
+effectInfos.get(EFFECT_TYPE.RANDOM_NOISE).program = null;
 
-materialInfos.keys().forEach((key) => {
-    materialInfos.get(key).program = null;
+effectInfos.keys().forEach((key) => {
+    effectInfos.get(key).program = null;
 });
 
 // ---------------------------------------------------------------
@@ -168,7 +172,7 @@ const previewCanvas = document.getElementById("js-preview-canvas");
 const previewCtx = previewCanvas.getContext("2d");
 
 let postProcessProgram = null;
-let currentTargetMaterialKey = null;
+let currentTargetEffectKey = null;
 
 const offScreenTexture = createTexture(gl, RESOLUTION, RESOLUTION);
 const framebuffer = createFramebuffer(gl, offScreenTexture);
@@ -251,7 +255,7 @@ const tick = (time) => {
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    const targetProgram = materialInfos.get(currentTargetMaterialKey).program;
+    const targetProgram = effectInfos.get(currentTargetEffectKey).program;
     if (targetProgram != null) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
         gl.useProgram(targetProgram);
@@ -308,23 +312,13 @@ const buildShaderContent = (content) => {
 
 /**
  *
- * @returns {Promise<void>}
- */
-const prepare = async () => {
-    commonHeaderShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/common-header.glsl`);
-    fullQuadVertexShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/full-quad-vertex.glsl`);
-    postprocessFragmentShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/postprocess-fragment.glsl`);
-}
-
-/**
- * 
  * @param key
  * @returns {Promise<void>}
  */
-const loadMaterial = async (key) => {
-    const info = materialInfos.get(key);
+const loadProgram = async (key) => {
+    const info = effectInfos.get(key);
 
-    currentTargetMaterialKey = key;
+    currentTargetEffectKey = key;
 
     if (info.program != null) {
         return;
@@ -339,7 +333,7 @@ const loadMaterial = async (key) => {
 
     createFullQuadGeometry(program);
 
-    materialInfos.get(key).program = program;
+    effectInfos.get(key).program = program;
 
     needsUpdateCanvasPattern = true;
 }
@@ -349,14 +343,16 @@ const loadMaterial = async (key) => {
  * @returns {Promise<void>}
  */
 const main = async () => {
-    await prepare();
+    commonHeaderShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/common-header.glsl`);
+    fullQuadVertexShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/full-quad-vertex.glsl`);
+    postprocessFragmentShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/postprocess-fragment.glsl`);
 
     const postProcessVertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderContent);
     const postProcessFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, postprocessFragmentShaderContent);
     postProcessProgram = createProgram(gl, postProcessVertexShader, postProcessFragmentShader);
     createFullQuadGeometry(postProcessProgram);
-
-    await loadMaterial("random-noise");
+   
+    await loadProgram(EFFECT_TYPE.RANDOM_NOISE);
 
     window.requestAnimationFrame(tick);
 }
