@@ -1,14 +1,18 @@
+import {DebuggerGUI} from "./DebuggerGUI.js";
+
 // ---------------------------------------------------------------
 // constants
 // ---------------------------------------------------------------
 
 const RESOLUTION = 512;
-const GRID_SIZE = 512;
+const GRID_SIZE = 16;
 
 const SCROLL_SPEED = 60;
 // const SCROLL_SPEED = 0;
 
 const SHADERS_PATH = "/shaders";
+
+const WAIT_CREATE_PATTERN_FRAMES = 30;
 
 const EFFECT_DEFINES = {
     RANDOM_NOISE: {
@@ -17,13 +21,19 @@ const EFFECT_DEFINES = {
     PERLIN_NOISE: {
         fileName: "perlin-noise",
     },
+    IMPROVE_NOISE: {
+        fileName: "improve-noise",
+    },
+    SIMPLEX_NOISE: {
+        fileName: "simplex-noise",
+    },
 };
 
 let commonHeaderShaderContent = null;
 let fullQuadVertexShaderContent = null;
 let postprocessFragmentShaderContent = null;
 let canvasPattern = null;
-let needsUpdateCanvasPattern = false;
+let needsUpdateCanvasPatternFrames = -1;
 
 const effectInfos = new Map();
 
@@ -44,6 +54,9 @@ Object.keys(EFFECT_TYPE).forEach((key) => {
         },
     );
 });
+
+const debuggerGUI = new DebuggerGUI();
+
 
 // ---------------------------------------------------------------
 
@@ -290,9 +303,13 @@ const tick = (time) => {
     activeTextureIndex++;
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
+    
+    if(needsUpdateCanvasPatternFrames > 0) {
+        needsUpdateCanvasPatternFrames--;
+    }
 
-    if (needsUpdateCanvasPattern) {
-        needsUpdateCanvasPattern = false;
+    if (needsUpdateCanvasPatternFrames === 0) {
+        needsUpdateCanvasPatternFrames = -1;
         canvasPattern = previewCtx.createPattern(renderCanvas, "repeat");
     }
 
@@ -330,8 +347,11 @@ const buildShaderContent = (content) => {
 const loadProgram = async (key) => {
     const info = effectInfos.get(key);
 
-    currentTargetEffectKey = key;
+    console.log("[loadProgram]", key, info)
 
+    currentTargetEffectKey = key;
+    needsUpdateCanvasPatternFrames = WAIT_CREATE_PATTERN_FRAMES;
+    
     if (info.program != null) {
         return;
     }
@@ -346,8 +366,6 @@ const loadProgram = async (key) => {
     createFullQuadGeometry(program);
 
     effectInfos.get(key).program = program;
-
-    needsUpdateCanvasPattern = true;
 }
 
 /**
@@ -363,6 +381,22 @@ const main = async () => {
     const postProcessFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, postprocessFragmentShaderContent);
     postProcessProgram = createProgram(gl, postProcessVertexShader, postProcessFragmentShader);
     createFullQuadGeometry(postProcessProgram);
+
+    window.document.body.appendChild(debuggerGUI.rootElement);
+    debuggerGUI.addPullDownDebugger({
+        label: "Effect",
+        options: Object.keys(EFFECT_TYPE).map(key => {
+            return {
+                label: key,
+                value: key
+            }
+        }),
+        initialValue: EFFECT_TYPE.RANDOM_NOISE,
+        initialExec: false,
+        onChange: async (key) => {
+            await loadProgram(key);
+        },
+    });
 
     await loadProgram(EFFECT_TYPE.RANDOM_NOISE);
 

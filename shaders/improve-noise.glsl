@@ -1,3 +1,7 @@
+#version 300 es
+
+precision highp float;
+
 #include <common_header>
 
 float perlinNoise(vec2 p, float isImproved) {
@@ -48,6 +52,7 @@ float perlinNoise(vec2 p, float isImproved) {
 void main() {
     vec2 resolution = uResolution;
     vec2 gridSize = uGridSize;
+    vec2 uv = vUv;
 
     float result = perlinNoise(uv * gridSize, 1.);
 

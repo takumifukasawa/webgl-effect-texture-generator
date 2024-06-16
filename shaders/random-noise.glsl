@@ -24,7 +24,6 @@ float randomNoise(vec2 p) {
 void main() {
     vec2 resolution = uResolution;
     vec2 gridSize = uGridSize;
-
     vec2 uv = vUv;
 
     // random noise

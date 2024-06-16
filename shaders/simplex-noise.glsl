@@ -1,3 +1,7 @@
+#version 300 es
+
+precision highp float;
+
 #include <common_header>
 
 //
@@ -79,8 +83,9 @@ float snoise(vec2 v) {
 void main() {
     vec2 resolution = uResolution;
     vec2 gridSize = uGridSize;
+    vec2 uv = vUv;
 
-    float result = simplexNoise(uv * gridSize, 1.);
+    float result = snoise(uv * gridSize);
 
     outColor = vec4(vec3(result), 1.);
 }

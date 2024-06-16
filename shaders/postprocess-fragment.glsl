@@ -43,12 +43,16 @@ void main() {
 
     float accCenterMask = clamp(0., 1., centerMask);
 
-    float accEdgeMask = clamp(0., 1., mix(edgeMask, edgeCircularMask, 0.));
+    float accEdgeMask = clamp(0., 1., mix(edgeMask, edgeCircularMask, .98));
 
     float accTotalMask = accCenterMask + accEdgeMask;
 
     vec4 centerColor = texture(uSrcTexture, uv);
     vec4 edgeColor = texture(uSrcTexture, uv + vec2(.5));
-    vec4 t = centerColor * accCenterMask / accTotalMask + edgeColor * accEdgeMask / accTotalMask;
-    outColor = vec4(vec3(t), 1.);
+
+    vec4 result =
+        centerColor * accCenterMask / accTotalMask
+        + edgeColor * accEdgeMask / accTotalMask;
+    
+    outColor = vec4(result.xyz, 1.);
 }
