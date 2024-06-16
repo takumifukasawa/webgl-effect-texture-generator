@@ -15,6 +15,20 @@ let postprocessFragmentShaderContent = null;
 let canvasPattern = null;
 let needsUpdateCanvasPattern = false;
 
+const materialInfos = new Map();
+
+materialInfos.set(
+    "random-noise",
+    {
+        fileName: "random-noise.glsl",
+    }
+);
+materialInfos.get("random-noise").program = null;
+
+materialInfos.keys().forEach((key) => {
+    materialInfos.get(key).program = null;
+});
+
 // ---------------------------------------------------------------
 
 /**
@@ -90,6 +104,12 @@ const createShader = (gl, type, src) => {
     }
 }
 
+/**
+ *
+ * @param gl
+ * @param texture
+ * @returns {WebGLFramebuffer}
+ */
 const createFramebuffer = (gl, texture) => {
     const framebuffer = gl.createFramebuffer();
     gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
@@ -98,6 +118,13 @@ const createFramebuffer = (gl, texture) => {
     return framebuffer;
 }
 
+/**
+ *
+ * @param gl
+ * @param width
+ * @param height
+ * @returns {WebGLTexture}
+ */
 const createTexture = (gl, width, height) => {
     const texture = gl.createTexture();
     gl.bindTexture(gl.TEXTURE_2D, texture);
@@ -140,10 +167,8 @@ const gl = renderCanvas.getContext("webgl2");
 const previewCanvas = document.getElementById("js-preview-canvas");
 const previewCtx = previewCanvas.getContext("2d");
 
-const materialPrograms = new Map();
-
-let currentTargetMaterialProgram = null;
 let postProcessProgram = null;
+let currentTargetMaterialKey = null;
 
 const offScreenTexture = createTexture(gl, RESOLUTION, RESOLUTION);
 const framebuffer = createFramebuffer(gl, offScreenTexture);
@@ -226,14 +251,15 @@ const tick = (time) => {
     gl.clear(gl.COLOR_BUFFER_BIT);
     gl.clearColor(0.0, 0.0, 0.0, 1.0);
 
-    if (currentTargetMaterialProgram != null) {
+    const targetProgram = materialInfos.get(currentTargetMaterialKey).program;
+    if (targetProgram != null) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, framebuffer);
-        gl.useProgram(currentTargetMaterialProgram);
-        const uniformLocationResolution = gl.getUniformLocation(currentTargetMaterialProgram, "uResolution");
+        gl.useProgram(targetProgram);
+        const uniformLocationResolution = gl.getUniformLocation(targetProgram, "uResolution");
         gl.uniform2fv(uniformLocationResolution, new Float32Array([RESOLUTION, RESOLUTION]));
-        const uniformLocationGridSize = gl.getUniformLocation(currentTargetMaterialProgram, "uGridSize");
+        const uniformLocationGridSize = gl.getUniformLocation(targetProgram, "uGridSize");
         gl.uniform2fv(uniformLocationGridSize, new Float32Array([GRID_SIZE, GRID_SIZE]));
-        const uniformLocationTime = gl.getUniformLocation(currentTargetMaterialProgram, "uTime");
+        const uniformLocationTime = gl.getUniformLocation(targetProgram, "uTime");
         gl.uniform1f(uniformLocationTime, currentTime);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -291,30 +317,46 @@ const prepare = async () => {
 }
 
 /**
- *
+ * 
+ * @param key
  * @returns {Promise<void>}
  */
-const main = async () => {
-    await prepare();
+const loadMaterial = async (key) => {
+    const info = materialInfos.get(key);
 
-    let shaderContent = await fetchShaderSrc(`${SHADERS_PATH}/random-noise.glsl`);
+    currentTargetMaterialKey = key;
+
+    if (info.program != null) {
+        return;
+    }
+
+    let shaderContent = await fetchShaderSrc(`${SHADERS_PATH}/${info.fileName}`);
     shaderContent = buildShaderContent(shaderContent);
 
     const vertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderContent);
     const fragmentShader = createShader(gl, gl.FRAGMENT_SHADER, shaderContent);
     const program = createProgram(gl, vertexShader, fragmentShader);
 
+    createFullQuadGeometry(program);
+
+    materialInfos.get(key).program = program;
+
+    needsUpdateCanvasPattern = true;
+}
+
+/**
+ *
+ * @returns {Promise<void>}
+ */
+const main = async () => {
+    await prepare();
+
     const postProcessVertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderContent);
     const postProcessFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, postprocessFragmentShaderContent);
     postProcessProgram = createProgram(gl, postProcessVertexShader, postProcessFragmentShader);
-
-    createFullQuadGeometry(program);
     createFullQuadGeometry(postProcessProgram);
 
-    materialPrograms.set("random-noise", program);
-    currentTargetMaterialProgram = program;
-
-    needsUpdateCanvasPattern = true;
+    await loadMaterial("random-noise");
 
     window.requestAnimationFrame(tick);
 }
