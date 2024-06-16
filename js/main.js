@@ -12,7 +12,7 @@ const SCROLL_SPEED = 60;
 
 const SHADERS_PATH = "/shaders";
 
-const WAIT_CREATE_PATTERN_FRAMES = 30;
+const WAIT_CREATE_PATTERN_FRAMES = 40;
 
 const EFFECT_DEFINES = {
     RANDOM_NOISE: {
