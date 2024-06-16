@@ -9,6 +9,16 @@ const SCROLL_SPEED = 60;
 // const SCROLL_SPEED = 0;
 
 const SHADERS_PATH = "/shaders";
+
+const EFFECT_DEFINES = {
+    RANDOM_NOISE: {
+        fileName: "random-noise",
+    },
+    PERLIN_NOISE: {
+        fileName: "perlin-noise",
+    },
+};
+
 let commonHeaderShaderContent = null;
 let fullQuadVertexShaderContent = null;
 let postprocessFragmentShaderContent = null;
@@ -17,20 +27,22 @@ let needsUpdateCanvasPattern = false;
 
 const effectInfos = new Map();
 
-const EFFECT_TYPE = {
-    RANDOM_NOISE: "random-noise",
-};
-
-effectInfos.set(
-    EFFECT_TYPE.RANDOM_NOISE,
-    {
-        fileName: `${EFFECT_TYPE.RANDOM_NOISE}.glsl`,
+const EFFECT_TYPE = Object.keys(EFFECT_DEFINES).reduce((acc, key) => {
+    return {
+        ...acc,
+        [key]: key,
     }
-);
-effectInfos.get(EFFECT_TYPE.RANDOM_NOISE).program = null;
+}, {});
 
-effectInfos.keys().forEach((key) => {
-    effectInfos.get(key).program = null;
+Object.keys(EFFECT_TYPE).forEach((key) => {
+    const fileName = EFFECT_DEFINES[key].fileName;
+    effectInfos.set(
+        key,
+        {
+            fileName: `${fileName}.glsl`,
+            program: null
+        },
+    );
 });
 
 // ---------------------------------------------------------------
@@ -351,7 +363,7 @@ const main = async () => {
     const postProcessFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, postprocessFragmentShaderContent);
     postProcessProgram = createProgram(gl, postProcessVertexShader, postProcessFragmentShader);
     createFullQuadGeometry(postProcessProgram);
-   
+
     await loadProgram(EFFECT_TYPE.RANDOM_NOISE);
 
     window.requestAnimationFrame(tick);
