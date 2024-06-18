@@ -27,6 +27,9 @@ const EFFECT_DEFINES = {
     SIMPLEX_NOISE: {
         fileName: "simplex-noise",
     },
+    FBM_NOISE: {
+        fileName: "fbm-noise",
+    },
 };
 
 let commonHeaderShaderContent = null;
@@ -43,6 +46,8 @@ const EFFECT_TYPE = Object.keys(EFFECT_DEFINES).reduce((acc, key) => {
         [key]: key,
     }
 }, {});
+
+const INITIAL_EFFECT_TYPE = EFFECT_TYPE.FBM_NOISE;
 
 Object.keys(EFFECT_TYPE).forEach((key) => {
     const fileName = EFFECT_DEFINES[key].fileName;
@@ -391,14 +396,14 @@ const main = async () => {
                 value: key
             }
         }),
-        initialValue: EFFECT_TYPE.RANDOM_NOISE,
+        initialValue: INITIAL_EFFECT_TYPE,
         initialExec: false,
         onChange: async (key) => {
             await loadProgram(key);
         },
     });
 
-    await loadProgram(EFFECT_TYPE.RANDOM_NOISE);
+    await loadProgram(INITIAL_EFFECT_TYPE);
 
     window.requestAnimationFrame(tick);
 }

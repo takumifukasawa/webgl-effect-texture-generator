@@ -10,9 +10,9 @@ out vec4 outColor;
 
 const float EPS = .00001;
 
-mat2 rot2(float rad) {
-    return mat2(cos(rad), -sin(rad), sin(rad), cos(rad));
-}
+// mat2 rot2(float rad) {
+//     return mat2(cos(rad), -sin(rad), sin(rad), cos(rad));
+// }
 
 float circularMask(in vec2 uv) {
     vec2 p = abs(fract(uv) - vec2(0.5)) * 2.;
@@ -43,7 +43,7 @@ void main() {
 
     float accCenterMask = clamp(0., 1., centerMask);
 
-    float accEdgeMask = clamp(0., 1., mix(edgeMask, edgeCircularMask, .98));
+    float accEdgeMask = mix(edgeMask, edgeCircularMask, 1.);
 
     float accTotalMask = accCenterMask + accEdgeMask;
 
@@ -55,4 +55,7 @@ void main() {
         + edgeColor * accEdgeMask / accTotalMask;
     
     outColor = vec4(result.xyz, 1.);
+   
+    // for debug
+    // outColor = centerColor;
 }
