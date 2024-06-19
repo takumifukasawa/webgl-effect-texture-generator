@@ -5,7 +5,7 @@ import {DebuggerGUI} from "./DebuggerGUI.js";
 // ---------------------------------------------------------------
 
 const RESOLUTION = 512;
-const GRID_SIZE = 16;
+const GRID_SIZE = 4;
 
 const SCROLL_SPEED = 60;
 // const SCROLL_SPEED = 0;

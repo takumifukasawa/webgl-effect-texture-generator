@@ -19,7 +19,9 @@ float circularMask(in vec2 uv, in float scale) {
     // return max(1. - dot(p, p), EPS);
     
     vec2 p = abs(uv - vec2(0.5)) * scale;
+    // 1: default
     // return clamp(0., 1., max(1. - dot(p, p), EPS));
+    // 2: smooth
     return smoothstep(0., 1., max(1. - dot(p, p), EPS));
 }
 
@@ -40,44 +42,89 @@ void main() {
     vec2 uv = vUv;
     vec4 textureColor = texture(uSrcTexture, vUv);
 
+    float centerCircularScale = 2.;
     float edgeCircularScale = 2.;
-    float centerMask = circularMask(uv, 2.);
-    float leftTopEdgeCircularMask = circularMask(uv + vec2(.5, -.5), edgeCircularScale);
-    float leftBottomEdgeCircularMask = circularMask(uv + vec2(.5, .5), edgeCircularScale);
-    float rightTopEdgeCircularMask = circularMask(uv + vec2(-.5, -.5), edgeCircularScale);
-    float rightBottomEdgeCircularMask = circularMask(uv + vec2(-.5, .5), edgeCircularScale);
+    float topBottomCircularScale = 4.;
+    float leftRightCircularScale = 4.;
+  
+    float maskNum = 9.;
+    float baseMaskRate = 1. / maskNum;
+    // float centerCircularMaskRate = baseMaskRate;
+    // float edgeCircularMaskRate = baseMaskRate;
+    // float topBottomCircularMaskRate = baseMaskRate;
+    // float leftRightCircularMaskRate = baseMaskRate;
+    float centerCircularMaskRate = .5;
+    float edgeCircularMaskRate = .5;
+    float topBottomCircularMaskRate = .25;
+    float leftRightCircularMaskRate = .25;
+    
+    float centerMask = circularMask(uv, centerCircularScale) * centerCircularMaskRate;
+    float leftTopEdgeCircularMask = circularMask(uv + vec2(.5, -.5), edgeCircularScale) * edgeCircularMaskRate;
+    float leftBottomEdgeCircularMask = circularMask(uv + vec2(.5, .5), edgeCircularScale) * edgeCircularMaskRate;
+    float rightTopEdgeCircularMask = circularMask(uv + vec2(-.5, -.5), edgeCircularScale) * edgeCircularMaskRate;
+    float rightBottomEdgeCircularMask = circularMask(uv + vec2(-.5, .5), edgeCircularScale) * edgeCircularMaskRate;
+    float topCircularMask = circularMask(uv + vec2(0., -.5), topBottomCircularScale) * topBottomCircularMaskRate;
+    float bottomCircularMask = circularMask(uv + vec2(0., .5), topBottomCircularScale) * topBottomCircularMaskRate;
+    float leftCircularMask = circularMask(uv + vec2(.5, 0.), leftRightCircularScale) * leftRightCircularMaskRate;
+    float rightCircularMask = circularMask(uv + vec2(-.5, 0.), leftRightCircularScale) * leftRightCircularMaskRate;
 
     float edgeMask = edgeMask(uv, .1, .1);
 
-    float accCenterMask = clamp(0., 1., centerMask);
+    float accCenterMask = centerMask;
 
-    float accEdgeMask = clamp(
-        0.,
-        1.,
+    float accEdgeMask =
         mix(
             edgeMask,
-            // edgeCircularMask,
-            leftTopEdgeCircularMask + leftBottomEdgeCircularMask + rightTopEdgeCircularMask + rightBottomEdgeCircularMask,
+            leftTopEdgeCircularMask
+            + leftBottomEdgeCircularMask
+            + rightTopEdgeCircularMask
+            + rightBottomEdgeCircularMask,
             1.
-        )
-    );
+        );
+    
+    float accTopBottomMask =
+        mix(
+            edgeMask,
+            topCircularMask + bottomCircularMask,
+            1.
+        );
+    
+    float accLeftRightMask =
+        mix(
+            edgeMask,
+            leftCircularMask + rightCircularMask,
+            1.
+        );
 
-    // accEdgeMask = edgeMask + leftTopEdgeCircularMask + leftBottomEdgeCircularMask + rightTopEdgeCircularMask + rightBottomEdgeCircularMask;
-
-    float accTotalMask = accCenterMask + accEdgeMask;
+    float accTotalMask =
+        accCenterMask
+        + accEdgeMask
+        + accTopBottomMask
+        + accLeftRightMask;
 
     vec4 centerColor = texture(uSrcTexture, uv);
     vec4 edgeColor = texture(uSrcTexture, uv + vec2(.5));
+    vec4 topBottomColor = texture(uSrcTexture, uv + vec2(0., .5));
+    vec4 leftRightColor = texture(uSrcTexture, uv + vec2(.5, 0.));
 
     vec4 result =
         centerColor * accCenterMask / accTotalMask
-        + edgeColor * accEdgeMask / accTotalMask;
-    
+        + edgeColor * accEdgeMask / accTotalMask
+        + topBottomColor * accTopBottomMask / accTotalMask
+        + leftRightColor * accLeftRightMask / accTotalMask;
+        // centerColor * accCenterMask
+        // + edgeColor * accEdgeMask
+        // + topBottomColor * accTopBottomMask
+        // + leftRightColor * accLeftRightMask;
+
+    // outColor = vec4(0., 0., 0., 1.);
     outColor = vec4(result.xyz, 1.);
-   
+    
     // for debug
-    // outColor = centerColor * accCenterMask / accTotalMask;
-    // outColor = edgeColor * accEdgeMask / accTotalMask;
-    // outColor = vec4(vec3(accEdgeMask), 1.);
-    // outColor = edgeColor;
+    // outColor =
+    //     centerColor * accCenterMask
+    //     + edgeColor * accEdgeMask
+    //     + leftRightColor * accLeftRightMask
+    //     + topBottomColor * accTopBottomMask
+    // ;
 }

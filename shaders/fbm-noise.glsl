@@ -40,7 +40,7 @@ float fbmNoise(vec2 p) {
         value += amplitude * noise(p);
         // value += amplitude * goldNoise(p * 512., 1.);
         p *= 2.;
-        amplitude *= .5;
+        amplitude *= .4;
     }
     return value;
 }
@@ -52,7 +52,7 @@ void main() {
 
     // fbm noise
     // float result = goldNoise(uv * gridSize * resolution, 1.);
-    float result = fbmNoise(uv * 2.);
+    float result = fbmNoise(uv * gridSize);
     
     outColor = vec4(vec3(result), 1.);
 }
