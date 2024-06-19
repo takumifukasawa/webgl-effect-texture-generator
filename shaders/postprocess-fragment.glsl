@@ -8,15 +8,19 @@ in vec2 vUv;
 
 out vec4 outColor;
 
-const float EPS = .00001;
+const float EPS = .001;
 
 // mat2 rot2(float rad) {
 //     return mat2(cos(rad), -sin(rad), sin(rad), cos(rad));
 // }
 
-float circularMask(in vec2 uv) {
-    vec2 p = abs(fract(uv) - vec2(0.5)) * 2.;
-    return max(1. - dot(p, p), EPS);
+float circularMask(in vec2 uv, in float scale) {
+    // vec2 p = abs(fract(uv) - vec2(0.5)) * 2.;
+    // return max(1. - dot(p, p), EPS);
+    
+    vec2 p = abs(uv - vec2(0.5)) * scale;
+    // return clamp(0., 1., max(1. - dot(p, p), EPS));
+    return smoothstep(0., 1., max(1. - dot(p, p), EPS));
 }
 
 float edgeMask(in vec2 uv, float band, float rate) {
@@ -36,14 +40,29 @@ void main() {
     vec2 uv = vUv;
     vec4 textureColor = texture(uSrcTexture, vUv);
 
-    float centerMask = circularMask(uv);
-    float edgeCircularMask = circularMask(uv + vec2(.5));
+    float edgeCircularScale = 2.;
+    float centerMask = circularMask(uv, 2.);
+    float leftTopEdgeCircularMask = circularMask(uv + vec2(.5, -.5), edgeCircularScale);
+    float leftBottomEdgeCircularMask = circularMask(uv + vec2(.5, .5), edgeCircularScale);
+    float rightTopEdgeCircularMask = circularMask(uv + vec2(-.5, -.5), edgeCircularScale);
+    float rightBottomEdgeCircularMask = circularMask(uv + vec2(-.5, .5), edgeCircularScale);
 
     float edgeMask = edgeMask(uv, .1, .1);
 
     float accCenterMask = clamp(0., 1., centerMask);
 
-    float accEdgeMask = mix(edgeMask, edgeCircularMask, 1.);
+    float accEdgeMask = clamp(
+        0.,
+        1.,
+        mix(
+            edgeMask,
+            // edgeCircularMask,
+            leftTopEdgeCircularMask + leftBottomEdgeCircularMask + rightTopEdgeCircularMask + rightBottomEdgeCircularMask,
+            1.
+        )
+    );
+
+    // accEdgeMask = edgeMask + leftTopEdgeCircularMask + leftBottomEdgeCircularMask + rightTopEdgeCircularMask + rightBottomEdgeCircularMask;
 
     float accTotalMask = accCenterMask + accEdgeMask;
 
@@ -57,5 +76,8 @@ void main() {
     outColor = vec4(result.xyz, 1.);
    
     // for debug
-    // outColor = centerColor;
+    // outColor = centerColor * accCenterMask / accTotalMask;
+    // outColor = edgeColor * accEdgeMask / accTotalMask;
+    // outColor = vec4(vec3(accEdgeMask), 1.);
+    // outColor = edgeColor;
 }

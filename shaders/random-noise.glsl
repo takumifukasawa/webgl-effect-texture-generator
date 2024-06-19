@@ -15,11 +15,11 @@ float goldNoise(in vec2 xy, in float seed) {
 
 // ---------------------------------------------------------------------
 
-float randomNoise(vec2 p) {
-    vec2 i = floor(p);
-    // return rand(i);
-    return (rand(i) + rand(i + 100.)) * .5;
-}
+// float randomNoise(vec2 p) {
+//     vec2 i = floor(p);
+//     // return rand(i);
+//     return (rand(i) + rand(i + 100.)) * .5;
+// }
 
 void main() {
     vec2 resolution = uResolution;

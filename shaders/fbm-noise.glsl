@@ -15,12 +15,6 @@ float goldNoise(in vec2 xy, in float seed) {
 
 // ---------------------------------------------------------------------
 
-float randomNoise(vec2 p) {
-    vec2 i = floor(p);
-    // return rand(i);
-    return (rand(i) + rand(i + 100.)) * .5;
-}
-
 float noise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);
@@ -42,8 +36,9 @@ float fbmNoise(vec2 p) {
     float value = 0.;
     float amplitude = .5;
     float frequency = 0.;
-    for(int i = 0; i < 5; i++) {
+    for(int i = 0; i < 6; i++) {
         value += amplitude * noise(p);
+        // value += amplitude * goldNoise(p * 512., 1.);
         p *= 2.;
         amplitude *= .5;
     }
