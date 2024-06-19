@@ -17,18 +17,42 @@ const WAIT_CREATE_PATTERN_FRAMES = 40;
 const EFFECT_DEFINES = {
     RANDOM_NOISE: {
         fileName: "random-noise",
+        debugParams: []
     },
     PERLIN_NOISE: {
         fileName: "perlin-noise",
+        debugParams: []
     },
     IMPROVE_NOISE: {
         fileName: "improve-noise",
+        debugParams: []
     },
     SIMPLEX_NOISE: {
         fileName: "simplex-noise",
+        debugParams: []
     },
     FBM_NOISE: {
         fileName: "fbm-noise",
+        debugParams: [
+            {
+                label: "amplitude",
+                type: "slider",
+                uniformName: "uAmplitude",
+                initialValue: .5,
+                minValue: 0,
+                maxValue: 2,
+                stepValue: 0.001
+            },
+            {
+                label: "frequency",
+                type: "slider",
+                uniformName: "uFrequency",
+                initialValue: .4,
+                minValue: 0,
+                maxValue: 2,
+                stepValue: 0.001
+            }
+        ]
     },
 };
 
@@ -50,18 +74,18 @@ const EFFECT_TYPE = Object.keys(EFFECT_DEFINES).reduce((acc, key) => {
 const INITIAL_EFFECT_TYPE = EFFECT_TYPE.FBM_NOISE;
 
 Object.keys(EFFECT_TYPE).forEach((key) => {
-    const fileName = EFFECT_DEFINES[key].fileName;
+    const {fileName, debugParams} = EFFECT_DEFINES[key];
     effectInfos.set(
         key,
         {
             fileName: `${fileName}.glsl`,
-            program: null
+            program: null,
+            debugParams,
         },
     );
 });
 
 const debuggerGUI = new DebuggerGUI();
-
 
 // ---------------------------------------------------------------
 
@@ -297,6 +321,7 @@ const tick = (time) => {
         gl.uniform1f(uniformLocationTime, currentTime);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.useProgram(null);
     }
 
     gl.useProgram(postProcessProgram);
@@ -308,8 +333,8 @@ const tick = (time) => {
     activeTextureIndex++;
     gl.drawArrays(gl.TRIANGLES, 0, 6);
     gl.flush();
-    
-    if(needsUpdateCanvasPatternFrames > 0) {
+
+    if (needsUpdateCanvasPatternFrames > 0) {
         needsUpdateCanvasPatternFrames--;
     }
 
@@ -356,7 +381,7 @@ const loadProgram = async (key) => {
 
     currentTargetEffectKey = key;
     needsUpdateCanvasPatternFrames = WAIT_CREATE_PATTERN_FRAMES;
-    
+
     if (info.program != null) {
         return;
     }
@@ -374,20 +399,9 @@ const loadProgram = async (key) => {
 }
 
 /**
- *
- * @returns {Promise<void>}
+ * 
  */
-const main = async () => {
-    commonHeaderShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/common-header.glsl`);
-    fullQuadVertexShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/full-quad-vertex.glsl`);
-    postprocessFragmentShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/postprocess-fragment.glsl`);
-
-    const postProcessVertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderContent);
-    const postProcessFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, postprocessFragmentShaderContent);
-    postProcessProgram = createProgram(gl, postProcessVertexShader, postProcessFragmentShader);
-    createFullQuadGeometry(postProcessProgram);
-
-    window.document.body.appendChild(debuggerGUI.rootElement);
+const initDebugger = () => {
     debuggerGUI.addPullDownDebugger({
         label: "Effect",
         options: Object.keys(EFFECT_TYPE).map(key => {
@@ -402,6 +416,66 @@ const main = async () => {
             await loadProgram(key);
         },
     });
+
+// # slider
+// label,
+// onChange,
+// onInput,
+// initialValue,
+// initialExec = true,
+// minValue,
+// maxValue,
+// stepValue,
+
+    effectInfos.forEach((info, key) => {
+        debuggerGUI.addBorderSpacer();
+        const debuggerGroup = debuggerGUI.addGroup(key, false);
+        const {debugParams} = info;
+        console.log(debugParams)
+        debugParams.forEach(debugParam => {
+            switch (debugParam.type) {
+                case "slider":
+                    const {initialValue, minValue, maxValue, stepValue, uniformName} = debugParam;
+                    debuggerGroup.addSliderDebugger({
+                        label: key,
+                        initialValue,
+                        minValue,
+                        maxValue,
+                        stepValue,
+                        onChange: async (value) => {
+                            const targetProgram = effectInfos.get(currentTargetEffectKey)?.program;
+                            if (targetProgram != null) {
+                                gl.useProgram(targetProgram);
+                                const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
+                                gl.uniform1f(uniformLocation, value);
+                                gl.useProgram(null);
+                                needsUpdateCanvasPatternFrames = true;
+                            }
+                        }
+                    });
+                    break;
+            }
+        });
+    });
+
+}
+
+/**
+ *
+ * @returns {Promise<void>}
+ */
+const main = async () => {
+    commonHeaderShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/common-header.glsl`);
+    fullQuadVertexShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/full-quad-vertex.glsl`);
+    postprocessFragmentShaderContent = await fetchShaderSrc(`${SHADERS_PATH}/postprocess-fragment.glsl`);
+
+    const postProcessVertexShader = createShader(gl, gl.VERTEX_SHADER, fullQuadVertexShaderContent);
+    const postProcessFragmentShader = createShader(gl, gl.FRAGMENT_SHADER, postprocessFragmentShaderContent);
+    postProcessProgram = createProgram(gl, postProcessVertexShader, postProcessFragmentShader);
+    createFullQuadGeometry(postProcessProgram);
+
+    window.document.body.appendChild(debuggerGUI.rootElement);
+    initDebugger();
 
     await loadProgram(INITIAL_EFFECT_TYPE);
 

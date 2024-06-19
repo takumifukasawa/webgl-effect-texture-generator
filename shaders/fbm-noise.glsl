@@ -32,15 +32,19 @@ float noise(vec2 p) {
     (d - b) * u.x * u.y;
 }
 
+uniform float uAmplitude;
+uniform float uFrequency;
+
 float fbmNoise(vec2 p) {
     float value = 0.;
-    float amplitude = .5;
+    // float amplitude = .5;
+    float amplitude = uAmplitude;
     float frequency = 0.;
     for(int i = 0; i < 6; i++) {
         value += amplitude * noise(p);
         // value += amplitude * goldNoise(p * 512., 1.);
         p *= 2.;
-        amplitude *= .4;
+        amplitude *= uFrequency;
     }
     return value;
 }

@@ -53,8 +53,8 @@ void main() {
     // float edgeCircularMaskRate = baseMaskRate;
     // float topBottomCircularMaskRate = baseMaskRate;
     // float leftRightCircularMaskRate = baseMaskRate;
-    float centerCircularMaskRate = .5;
-    float edgeCircularMaskRate = .5;
+    float centerCircularMaskRate = 1.;
+    float edgeCircularMaskRate = 1.;
     float topBottomCircularMaskRate = .25;
     float leftRightCircularMaskRate = .25;
     
