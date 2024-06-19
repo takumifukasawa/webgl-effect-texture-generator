@@ -35,6 +35,15 @@ const EFFECT_DEFINES = {
         fileName: "fbm-noise",
         debugParams: [
             {
+                label: "octaves",
+                type: "slider",
+                uniformName: "uOctaves",
+                initialValue: 4,
+                minValue: 1,
+                maxValue: 10,
+                stepValue: 1
+            },
+            {
                 label: "amplitude",
                 type: "slider",
                 uniformName: "uAmplitude",
@@ -50,6 +59,15 @@ const EFFECT_DEFINES = {
                 initialValue: .4,
                 minValue: 0,
                 maxValue: 2,
+                stepValue: 0.001
+            },
+            {
+                label: "factor",
+                type: "slider",
+                uniformName: "uFactor",
+                initialValue: .5,
+                minValue: 0,
+                maxValue: 4,
                 stepValue: 0.001
             }
         ]
@@ -435,9 +453,9 @@ const initDebugger = () => {
         debugParams.forEach(debugParam => {
             switch (debugParam.type) {
                 case "slider":
-                    const {initialValue, minValue, maxValue, stepValue, uniformName} = debugParam;
+                    const {label, initialValue, minValue, maxValue, stepValue, uniformName} = debugParam;
                     debuggerGroup.addSliderDebugger({
-                        label: key,
+                        label,
                         initialValue,
                         minValue,
                         maxValue,

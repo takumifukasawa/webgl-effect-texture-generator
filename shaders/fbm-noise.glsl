@@ -32,21 +32,40 @@ float noise(vec2 p) {
     (d - b) * u.x * u.y;
 }
 
+uniform float uOctaves;
 uniform float uAmplitude;
 uniform float uFrequency;
+uniform float uFactor;
 
-float fbmNoise(vec2 p) {
-    float value = 0.;
-    // float amplitude = .5;
-    float amplitude = uAmplitude;
-    float frequency = 0.;
-    for(int i = 0; i < 6; i++) {
-        value += amplitude * noise(p);
-        // value += amplitude * goldNoise(p * 512., 1.);
-        p *= 2.;
-        amplitude *= uFrequency;
+// float fbmNoise(vec2 p) {
+//     float value = 0.;
+//     // float amplitude = .5;
+//     float amplitude = uAmplitude;
+//     float frequency = 0.;
+//     int octaves = int(uOctaves);
+//     for(int i = 0; i < octaves; i++) {
+//         value += amplitude * noise(p);
+//         // value += amplitude * goldNoise(p * 512., 1.);
+//         p *= 2.;
+//         amplitude *= uFrequency;
+//     }
+//     return value;
+// }
+
+// https://iquilezles.org/articles/fbm/ 
+
+float fbmNoise(in vec2 p) {
+    float g = exp2(-uFactor);
+    float f = uFrequency;
+    float a = uAmplitude;
+    float t = 0.;
+    int octaves = int(uOctaves);
+    for(int i = 0; i < octaves; i++) {
+        t += a * noise(p * f);
+        f *= 2.;
+        a *= g;
     }
-    return value;
+    return t;
 }
 
 void main() {
