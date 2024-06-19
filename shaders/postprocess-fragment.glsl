@@ -20,9 +20,9 @@ float circularMask(in vec2 uv, in float scale) {
     
     vec2 p = abs(uv - vec2(0.5)) * scale;
     // 1: default
-    // return clamp(0., 1., max(1. - dot(p, p), EPS));
+    return clamp(0., 1., max(1. - dot(p, p), EPS));
     // 2: smooth
-    return smoothstep(0., 1., max(1. - dot(p, p), EPS));
+    // return smoothstep(0., 1., max(1. - dot(p, p), EPS));
 }
 
 float edgeMask(in vec2 uv, float band, float rate) {
@@ -99,8 +99,9 @@ void main() {
     float accTotalMask =
         accCenterMask
         + accEdgeMask
-        + accTopBottomMask
-        + accLeftRightMask;
+        // + accTopBottomMask
+        // + accLeftRightMask;
+    ;
 
     vec4 centerColor = texture(uSrcTexture, uv);
     vec4 edgeColor = texture(uSrcTexture, uv + vec2(.5));
@@ -119,6 +120,11 @@ void main() {
 
     // outColor = vec4(0., 0., 0., 1.);
     outColor = vec4(result.xyz, 1.);
+    
+    float r = accCenterMask * centerColor.r / accTotalMask + accEdgeMask * edgeColor.r / accTotalMask;
+    float g = accCenterMask * centerColor.g / accTotalMask + accEdgeMask * edgeColor.g / accTotalMask;
+    float b = accCenterMask * centerColor.b / accTotalMask + accEdgeMask * edgeColor.b / accTotalMask;
+    outColor = vec4(r, g, b, 1.);
     
     // for debug
     // outColor =
