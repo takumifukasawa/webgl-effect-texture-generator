@@ -3,6 +3,8 @@
 precision highp float;
 
 uniform sampler2D uSrcTexture;
+uniform float uTilingEnabled;
+uniform float uEdgeMaskMix;
 
 in vec2 vUv;
 
@@ -79,21 +81,21 @@ void main() {
             + leftBottomEdgeCircularMask
             + rightTopEdgeCircularMask
             + rightBottomEdgeCircularMask,
-            1.
+            uEdgeMaskMix
         );
     
     float accTopBottomMask =
         mix(
             edgeMask,
             topCircularMask + bottomCircularMask,
-            1.
+            uEdgeMaskMix
         );
     
     float accLeftRightMask =
         mix(
             edgeMask,
             leftCircularMask + rightCircularMask,
-            1.
+            uEdgeMaskMix
         );
 
     float accTotalMask =
@@ -124,7 +126,12 @@ void main() {
     float r = accCenterMask * centerColor.r / accTotalMask + accEdgeMask * edgeColor.r / accTotalMask;
     float g = accCenterMask * centerColor.g / accTotalMask + accEdgeMask * edgeColor.g / accTotalMask;
     float b = accCenterMask * centerColor.b / accTotalMask + accEdgeMask * edgeColor.b / accTotalMask;
-    outColor = vec4(r, g, b, 1.);
+    
+    outColor = mix(
+        centerColor,
+        vec4(r, g, b, 1.),
+        step(.5, uTilingEnabled)
+    );
     
     // for debug
     // outColor =

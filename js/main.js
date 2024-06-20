@@ -417,7 +417,7 @@ const loadProgram = async (key) => {
 }
 
 /**
- * 
+ *
  */
 const initDebugger = () => {
     debuggerGUI.addPullDownDebugger({
@@ -433,6 +433,40 @@ const initDebugger = () => {
         onChange: async (key) => {
             await loadProgram(key);
         },
+    });
+
+    debuggerGUI.addBorderSpacer();
+
+    const postProcessDebugGroup = debuggerGUI.addGroup("postprocess", false);
+
+    postProcessDebugGroup.addSliderDebugger({
+        label: "tiling enabled",
+        initialValue: 1,
+        minValue: 0,
+        maxValue: 1,
+        stepValue: 1,
+        onChange: async (value) => {
+            gl.useProgram(postProcessProgram);
+            const uniformLocation = gl.getUniformLocation(postProcessProgram, "uTilingEnabled");
+            gl.uniform1f(uniformLocation, value);
+            gl.useProgram(null);
+            needsUpdateCanvasPatternFrames = true;
+        }
+    });
+
+    postProcessDebugGroup.addSliderDebugger({
+        label: "edge smooth",
+        initialValue: 1,
+        minValue: 0,
+        maxValue: 1,
+        stepValue: 0.001,
+        onChange: async (value) => {
+            gl.useProgram(postProcessProgram);
+            const uniformLocation = gl.getUniformLocation(postProcessProgram, "uEdgeMaskMix");
+            gl.uniform1f(uniformLocation, value);
+            gl.useProgram(null);
+            needsUpdateCanvasPatternFrames = true;
+        }
     });
 
 // # slider
@@ -493,9 +527,10 @@ const main = async () => {
     createFullQuadGeometry(postProcessProgram);
 
     window.document.body.appendChild(debuggerGUI.rootElement);
-    initDebugger();
 
     await loadProgram(INITIAL_EFFECT_TYPE);
+
+    initDebugger();
 
     window.requestAnimationFrame(tick);
 }
