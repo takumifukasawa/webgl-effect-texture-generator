@@ -5,6 +5,8 @@ precision highp float;
 uniform sampler2D uSrcTexture;
 uniform float uTilingEnabled;
 uniform float uEdgeMaskMix;
+uniform float uRemapMin;
+uniform float uRemapMax;
 
 in vec2 vUv;
 
@@ -132,6 +134,8 @@ void main() {
         vec4(r, g, b, 1.),
         step(.5, uTilingEnabled)
     );
+    
+    outColor.xyz = mix(vec3(uRemapMin), vec3(uRemapMax), outColor.xyz);
     
     // for debug
     // outColor =

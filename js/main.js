@@ -469,6 +469,36 @@ const initDebugger = () => {
         }
     });
 
+    postProcessDebugGroup.addSliderDebugger({
+        label: "remap min",
+        initialValue: 0,
+        minValue: 0,
+        maxValue: 1,
+        stepValue: 0.001,
+        onChange: async (value) => {
+            gl.useProgram(postProcessProgram);
+            const uniformLocation = gl.getUniformLocation(postProcessProgram, "uRemapMin");
+            gl.uniform1f(uniformLocation, value);
+            gl.useProgram(null);
+            needsUpdateCanvasPatternFrames = true;
+        }
+    });
+
+    postProcessDebugGroup.addSliderDebugger({
+        label: "remap max",
+        initialValue: 1,
+        minValue: 0,
+        maxValue: 1,
+        stepValue: 0.001,
+        onChange: async (value) => {
+            gl.useProgram(postProcessProgram);
+            const uniformLocation = gl.getUniformLocation(postProcessProgram, "uRemapMax");
+            gl.uniform1f(uniformLocation, value);
+            gl.useProgram(null);
+            needsUpdateCanvasPatternFrames = true;
+        }
+    });
+
 // # slider
 // label,
 // onChange,
