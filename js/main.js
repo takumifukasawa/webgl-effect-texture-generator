@@ -37,7 +37,7 @@ const EFFECT_DEFINES = {
                 uniformName: "uGridSize",
                 initialValue: 4,
                 minValue: 1,
-                maxValue: 10,
+                maxValue: 512,
                 stepValue: 0.001
             }
         ]
@@ -455,6 +455,34 @@ const buildShaderContent = (content) => {
 
 /**
  *
+ * @param format
+ * @param initialValue
+ * @param uniformName
+ */
+const assignDebugParams = (targetProgram, debugParams, value = null) => {
+    const {format, uniformName, initialValue} = debugParams;
+    gl.useProgram(targetProgram);
+    value = value !== null ? value : initialValue;
+
+    // for debug
+    // console.log(targetProgram, value)
+  
+    const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
+    switch (format) {
+        case "vec2":
+            gl.uniform2fv(uniformLocation, new Float32Array([value, value]));
+            break;
+        default:
+            gl.uniform1f(uniformLocation, value);
+            break;
+    }
+    gl.useProgram(null);
+    needsUpdateCanvasPatternFrames = true;
+}
+
+
+/**
+ *
  * @param key
  * @returns {Promise<void>}
  */
@@ -480,26 +508,27 @@ const loadProgram = async (key) => {
     createFullQuadGeometry(program);
 
     effectInfos.get(key).program = program;
-    
+
     //
     // set initial debug parameters
     //
 
     [...COMMON_DEBUG_PARAMS, ...info.debugParams].forEach(debugParam => {
-        const {label, format, initialValue, uniformName} = debugParam;
+        const {format, initialValue, uniformName} = debugParam;
         const targetProgram = effectInfos.get(currentTargetEffectKey)?.program;
-        gl.useProgram(targetProgram);
-        const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
-        switch (format) {
-            case "vec2":
-                gl.uniform2fv(uniformLocation, new Float32Array([initialValue, initialValue]));
-                break;
-            default:
-                gl.uniform1f(uniformLocation, initialValue);
-                break;
-        }
-        gl.useProgram(null);
-        needsUpdateCanvasPatternFrames = true;
+        assignDebugParams(targetProgram, debugParam)
+        // gl.useProgram(targetProgram);
+        // const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
+        // switch (format) {
+        //     case "vec2":
+        //         gl.uniform2fv(uniformLocation, new Float32Array([initialValue, initialValue]));
+        //         break;
+        //     default:
+        //         gl.uniform1f(uniformLocation, initialValue);
+        //         break;
+        // }
+        // gl.useProgram(null);
+        // needsUpdateCanvasPatternFrames = true;
     });
 }
 
@@ -613,18 +642,19 @@ const initDebugger = () => {
                         onChange: async (value) => {
                             const targetProgram = effectInfos.get(currentTargetEffectKey)?.program;
                             if (targetProgram != null) {
-                                gl.useProgram(targetProgram);
-                                const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
-                                switch (format) {
-                                    case "vec2":
-                                        gl.uniform2fv(uniformLocation, new Float32Array([value, value]));
-                                        break;
-                                    default:
-                                        gl.uniform1f(uniformLocation, value);
-                                        break;
-                                }
-                                gl.useProgram(null);
-                                needsUpdateCanvasPatternFrames = true;
+                                assignDebugParams(targetProgram, debugParam, value)
+                                // gl.useProgram(targetProgram);
+                                // const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
+                                // switch (format) {
+                                //     case "vec2":
+                                //         gl.uniform2fv(uniformLocation, new Float32Array([value, value]));
+                                //         break;
+                                //     default:
+                                //         gl.uniform1f(uniformLocation, value);
+                                //         break;
+                                // }
+                                // gl.useProgram(null);
+                                // needsUpdateCanvasPatternFrames = true;
                             }
                         }
                     });

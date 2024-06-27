@@ -30,7 +30,7 @@ void main() {
 
     // random noise
     // float result = randomNoise(uv * gridSize);
-    float result = goldNoise(uv * gridSize * resolution, 1.);
+    float result = goldNoise(floor(uv * gridSize) + uTime, 1.);
     
     outColor = vec4(vec3(result), 1.);
 }
