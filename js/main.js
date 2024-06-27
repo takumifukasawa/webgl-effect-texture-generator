@@ -303,6 +303,8 @@ const createTexture = (gl, width, height) => {
 //     console.log(textarea.value);
 // });
 
+const downloadButton = document.getElementById("js-download-button");
+
 const renderCanvas = document.getElementById("js-render-canvas");
 const gl = renderCanvas.getContext("webgl2");
 
@@ -684,6 +686,14 @@ const main = async () => {
     await loadProgram(INITIAL_EFFECT_TYPE);
 
     initDebugger();
+    
+    // downloadButton.addEventListener("click", () => {
+    //     const imgUrl = renderCanvas.toDataURL();
+    //     // const img = new Image();
+    //     const w = window.open();
+    //     w.document.write(`<img src="${imgUrl}" />`);
+    //     w.print();
+    // });
 
     window.requestAnimationFrame(tick);
 }
