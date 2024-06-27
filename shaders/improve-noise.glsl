@@ -4,6 +4,8 @@ precision highp float;
 
 #include <common_header>
 
+uniform float uTiling;
+
 float perlinNoise(vec2 p, float isImproved) {
     vec2 i = floor(p);
     vec2 f = fract(p);
@@ -54,7 +56,7 @@ void main() {
     vec2 gridSize = uGridSize;
     vec2 uv = vUv;
 
-    float result = perlinNoise(uv * gridSize, 1.);
+    float result = perlinNoise(uv * gridSize + uTime, 1.);
 
     outColor = vec4(vec3(result), 1.);
 }

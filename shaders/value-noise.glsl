@@ -1,5 +1,7 @@
 #include <common_header>
 
+uniform float uTiling;
+
 float valueNoise(vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);

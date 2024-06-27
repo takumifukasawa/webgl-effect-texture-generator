@@ -14,26 +14,92 @@ const SHADERS_PATH = "/shaders";
 
 const WAIT_CREATE_PATTERN_FRAMES = 40;
 
+const COMMON_DEBUG_PARAMS = [
+    {
+        label: "time",
+        type: "slider",
+        uniformName: "uTime",
+        initialValue: 0,
+        minValue: 0,
+        maxValue: 10,
+        stepValue: 0.001
+    }
+];
+
 const EFFECT_DEFINES = {
     RANDOM_NOISE: {
         fileName: "random-noise",
-        debugParams: []
+        debugParams: [
+            {
+                label: "grid size",
+                type: "slider",
+                format: "vec2",
+                uniformName: "uGridSize",
+                initialValue: 4,
+                minValue: 1,
+                maxValue: 10,
+                stepValue: 0.001
+            }
+        ]
     },
     PERLIN_NOISE: {
         fileName: "perlin-noise",
-        debugParams: []
+        debugParams: [
+            {
+                label: "grid size",
+                type: "slider",
+                format: "vec2",
+                uniformName: "uGridSize",
+                initialValue: 4,
+                minValue: 1,
+                maxValue: 10,
+                stepValue: 0.001
+            }
+        ]
     },
     IMPROVE_NOISE: {
         fileName: "improve-noise",
-        debugParams: []
+        debugParams: [
+            {
+                label: "grid size",
+                type: "slider",
+                format: "vec2",
+                uniformName: "uGridSize",
+                initialValue: 4,
+                minValue: 1,
+                maxValue: 10,
+                stepValue: 0.001
+            }
+        ]
     },
     SIMPLEX_NOISE: {
         fileName: "simplex-noise",
-        debugParams: []
+        debugParams: [
+            {
+                label: "grid size",
+                type: "slider",
+                format: "vec2",
+                uniformName: "uGridSize",
+                initialValue: 4,
+                minValue: 1,
+                maxValue: 10,
+                stepValue: 0.001
+            }
+        ]
     },
     FBM_NOISE: {
         fileName: "fbm-noise",
         debugParams: [
+            {
+                label: "grid size",
+                type: "slider",
+                format: "vec2",
+                uniformName: "uGridSize",
+                initialValue: 4,
+                minValue: 1,
+                maxValue: 10,
+                stepValue: 0.001
+            },
             {
                 label: "octaves",
                 type: "slider",
@@ -333,10 +399,10 @@ const tick = (time) => {
         gl.useProgram(targetProgram);
         const uniformLocationResolution = gl.getUniformLocation(targetProgram, "uResolution");
         gl.uniform2fv(uniformLocationResolution, new Float32Array([RESOLUTION, RESOLUTION]));
-        const uniformLocationGridSize = gl.getUniformLocation(targetProgram, "uGridSize");
-        gl.uniform2fv(uniformLocationGridSize, new Float32Array([GRID_SIZE, GRID_SIZE]));
-        const uniformLocationTime = gl.getUniformLocation(targetProgram, "uTime");
-        gl.uniform1f(uniformLocationTime, currentTime);
+        // const uniformLocationGridSize = gl.getUniformLocation(targetProgram, "uGridSize");
+        // gl.uniform2fv(uniformLocationGridSize, new Float32Array([GRID_SIZE, GRID_SIZE]));
+        // const uniformLocationTime = gl.getUniformLocation(targetProgram, "uTime");
+        // gl.uniform1f(uniformLocationTime, currentTime);
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null);
         gl.useProgram(null);
@@ -414,6 +480,27 @@ const loadProgram = async (key) => {
     createFullQuadGeometry(program);
 
     effectInfos.get(key).program = program;
+    
+    //
+    // set initial debug parameters
+    //
+
+    [...COMMON_DEBUG_PARAMS, ...info.debugParams].forEach(debugParam => {
+        const {label, format, initialValue, uniformName} = debugParam;
+        const targetProgram = effectInfos.get(currentTargetEffectKey)?.program;
+        gl.useProgram(targetProgram);
+        const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
+        switch (format) {
+            case "vec2":
+                gl.uniform2fv(uniformLocation, new Float32Array([initialValue, initialValue]));
+                break;
+            default:
+                gl.uniform1f(uniformLocation, initialValue);
+                break;
+        }
+        gl.useProgram(null);
+        needsUpdateCanvasPatternFrames = true;
+    });
 }
 
 /**
@@ -513,11 +600,10 @@ const initDebugger = () => {
         debuggerGUI.addBorderSpacer();
         const debuggerGroup = debuggerGUI.addGroup(key, false);
         const {debugParams} = info;
-        console.log(debugParams)
-        debugParams.forEach(debugParam => {
+        [...COMMON_DEBUG_PARAMS, ...debugParams].forEach(debugParam => {
             switch (debugParam.type) {
                 case "slider":
-                    const {label, initialValue, minValue, maxValue, stepValue, uniformName} = debugParam;
+                    const {label, format, initialValue, minValue, maxValue, stepValue, uniformName} = debugParam;
                     debuggerGroup.addSliderDebugger({
                         label,
                         initialValue,
@@ -529,7 +615,14 @@ const initDebugger = () => {
                             if (targetProgram != null) {
                                 gl.useProgram(targetProgram);
                                 const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
-                                gl.uniform1f(uniformLocation, value);
+                                switch (format) {
+                                    case "vec2":
+                                        gl.uniform2fv(uniformLocation, new Float32Array([value, value]));
+                                        break;
+                                    default:
+                                        gl.uniform1f(uniformLocation, value);
+                                        break;
+                                }
                                 gl.useProgram(null);
                                 needsUpdateCanvasPatternFrames = true;
                             }

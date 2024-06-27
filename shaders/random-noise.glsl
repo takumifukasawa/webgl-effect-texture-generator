@@ -4,6 +4,8 @@ precision highp float;
 
 #include <common_header>
 
+uniform float uTiling;
+
 // ---------------------------------------------------------------------
 // ref: https://www.shadertoy.com/view/ltB3zD
 

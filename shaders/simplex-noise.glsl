@@ -4,6 +4,8 @@ precision highp float;
 
 #include <common_header>
 
+uniform float uTiling;
+
 //
 // Description : GLSL 2D simplex noise function
 //      Author : Ian McEwan, Ashima Arts

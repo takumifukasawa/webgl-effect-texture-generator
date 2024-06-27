@@ -75,7 +75,7 @@ void main() {
 
     // fbm noise
     // float result = goldNoise(uv * gridSize * resolution, 1.);
-    float result = fbmNoise(uv * gridSize);
+    float result = fbmNoise(uv * gridSize + uTime);
     
     outColor = vec4(vec3(result), 1.);
 }
