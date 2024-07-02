@@ -2,6 +2,8 @@
 
 precision highp float;
 
+#define saturate(x) clamp(x, 0., 1.)
+
 uniform sampler2D uSrcTexture;
 uniform float uTilingEnabled;
 uniform float uEdgeMaskMix;
@@ -135,7 +137,10 @@ void main() {
         step(.5, uTilingEnabled)
     );
     
-    outColor.xyz = mix(vec3(uRemapMin), vec3(uRemapMax), outColor.xyz);
+    vec3 c = saturate((outColor.xyz - vec3(uRemapMin)) / (uRemapMax - uRemapMin));
+
+    // outColor.xyz = mix(vec3(uRemapMin), vec3(uRemapMax), outColor.xyz);
+    outColor.xyz = c;
     
     // for debug
     // outColor =
