@@ -10,7 +10,7 @@ const GRID_SIZE = 4;
 const SCROLL_SPEED = 60;
 // const SCROLL_SPEED = 0;
 
-const SHADERS_PATH = "/shaders";
+const SHADERS_PATH = "../shaders";
 
 const WAIT_CREATE_PATTERN_FRAMES = 40;
 
