@@ -52,6 +52,7 @@ void main() {
     result = saturate(result);
     result = pow(result, uVoronoiPower);
 
+    // border
     float b = 1. - smoothstep(0., .05, result);
 
     outColor = vec4(vec3(result), 1.);
