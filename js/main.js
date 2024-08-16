@@ -138,6 +138,54 @@ const EFFECT_DEFINES = {
             }
         ]
     },
+    VORONOI_CIRCULAR_NOISE: {
+        fileName: "voronoi-circular-noise",
+        debugParams: [
+            {
+                label: "grid size",
+                type: "slider",
+                format: "vec2",
+                uniformName: "uGridSize",
+                initialValue: 4,
+                minValue: 1,
+                maxValue: 10,
+                stepValue: 0.001
+            },
+            {
+                label: "power",
+                type: "slider",
+                uniformName: "uVoronoiPower",
+                initialValue: 1.,
+                minValue: 0.001,
+                maxValue: 16.,
+                stepValue: 0.001
+            },
+        ]
+    },
+    VORONOI_EDGE_NOISE: {
+        fileName: "voronoi-edge-noise",
+        debugParams: [
+            {
+                label: "grid size",
+                type: "slider",
+                format: "vec2",
+                uniformName: "uGridSize",
+                initialValue: 4,
+                minValue: 1,
+                maxValue: 10,
+                stepValue: 0.001
+            },
+            {
+                label: "power",
+                type: "slider",
+                uniformName: "uVoronoiPower",
+                initialValue: 1.,
+                minValue: 0.001,
+                maxValue: 16.,
+                stepValue: 0.001
+            }
+        ]
+    },
 };
 
 let commonHeaderShaderContent = null;
@@ -155,7 +203,8 @@ const EFFECT_TYPE = Object.keys(EFFECT_DEFINES).reduce((acc, key) => {
     }
 }, {});
 
-const INITIAL_EFFECT_TYPE = EFFECT_TYPE.FBM_NOISE;
+// const INITIAL_EFFECT_TYPE = EFFECT_TYPE.FBM_NOISE;
+const INITIAL_EFFECT_TYPE = EFFECT_TYPE.VORONOI_CIRCULAR_NOISE;
 
 Object.keys(EFFECT_TYPE).forEach((key) => {
     const {fileName, debugParams} = EFFECT_DEFINES[key];
@@ -468,7 +517,7 @@ const assignDebugParams = (targetProgram, debugParams, value = null) => {
 
     // for debug
     // console.log(targetProgram, value)
-  
+
     const uniformLocation = gl.getUniformLocation(targetProgram, uniformName);
     switch (format) {
         case "vec2":
@@ -617,6 +666,21 @@ const initDebugger = () => {
         }
     });
 
+    postProcessDebugGroup.addSliderDebugger({
+        label: "one minus",
+        initialValue: 0,
+        minValue: 0,
+        maxValue: 1,
+        stepValue: 1,
+        onChange: async (value) => {
+            gl.useProgram(postProcessProgram);
+            const uniformLocation = gl.getUniformLocation(postProcessProgram, "uOneMinus");
+            gl.uniform1f(uniformLocation, value);
+            gl.useProgram(null);
+            needsUpdateCanvasPatternFrames = true;
+        }
+    });
+
 // # slider
 // label,
 // onChange,
@@ -686,7 +750,7 @@ const main = async () => {
     await loadProgram(INITIAL_EFFECT_TYPE);
 
     initDebugger();
-    
+
     // downloadButton.addEventListener("click", () => {
     //     const imgUrl = renderCanvas.toDataURL();
     //     // const img = new Image();

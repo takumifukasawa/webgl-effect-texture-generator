@@ -9,6 +9,7 @@ uniform float uTilingEnabled;
 uniform float uEdgeMaskMix;
 uniform float uRemapMin;
 uniform float uRemapMax;
+uniform float uOneMinus;
 
 in vec2 vUv;
 
@@ -138,6 +139,10 @@ void main() {
     );
     
     vec3 c = saturate((outColor.xyz - vec3(uRemapMin)) / (uRemapMax - uRemapMin));
+
+    if(uOneMinus > 0.) {
+        c = 1. - c;
+    }
 
     // outColor.xyz = mix(vec3(uRemapMin), vec3(uRemapMax), outColor.xyz);
     outColor.xyz = c;
