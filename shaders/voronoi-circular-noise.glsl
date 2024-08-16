@@ -7,6 +7,7 @@ precision highp float;
 uniform float uVoronoiPower;
 uniform float uOneMinus;
 
+// ref: https://thebookofshaders.com/12/
 float voronoiCircular(in vec2 p) {
     vec2 i = floor(p);
     vec2 f = fract(p);

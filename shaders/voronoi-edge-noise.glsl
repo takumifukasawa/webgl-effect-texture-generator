@@ -7,6 +7,7 @@ precision highp float;
 uniform float uVoronoiPower;
 uniform float uOneMinus;
 
+// ref: https://iquilezles.org/articles/voronoilines/
 float voronoiEdge(in vec2 x) {
     vec2 p = floor(x);
     vec2 f = fract(x);
